@@ -224,7 +224,9 @@ struct CalendarView: View {
             }
         }
         .listRowBackground(Color.clear)
-        .frame(height: 120)
+        // Was a fixed 120pt, which wasted the extra room in a taller notch and
+        // overflowed a shorter one. The 120 is now a floor, not a ceiling.
+        .frame(minHeight: 120, maxHeight: .infinity)
         .onChange(of: selectedDate) {
             Task {
                 await calendarManager.updateCurrentDate(selectedDate)

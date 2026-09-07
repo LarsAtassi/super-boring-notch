@@ -16,10 +16,34 @@ struct MusicPlayerView: View {
     @EnvironmentObject var vm: BoringViewModel
     let albumArtNamespace: Namespace.ID
 
+    /// Art is square and sized from whatever the grid cell gives us, so it grows
+    /// with the notch height instead of being pinned to a constant. Capped as a
+    /// fraction of the width so a short, wide cell doesn't leave the controls
+    /// with no room.
+    private func artSize(for size: CGSize) -> CGFloat {
+        let fromHeight = size.height - 10
+        let fromWidth = size.width * 0.42
+        return max(28, min(fromHeight, fromWidth))
+    }
+
     var body: some View {
-        HStack {
-            AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace).padding(.all, 5)
-            MusicControlsView().drawingGroup().compositingGroup()
+        GeometryReader { geo in
+            let art = artSize(for: geo.size)
+            HStack(spacing: 8) {
+                AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace)
+                    .frame(width: art, height: art)
+                    .padding(.vertical, 5)
+
+                MusicControlsView()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    // Clipped here rather than on the HStack: the track title is
+                    // what used to spill under the neighbouring panel, and
+                    // clipping the whole stack would cut off the album art glow,
+                    // which is meant to bleed past its frame.
+                    .clipped()
+                    .compositingGroup()
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
         }
     }
 }

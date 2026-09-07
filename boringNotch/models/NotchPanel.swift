@@ -184,6 +184,37 @@ enum NotchGrid {
         return result
     }
 
+    /// Rebalances a set of spans after one of them is set explicitly.
+    ///
+    /// `fixed` is the index the user just changed; it keeps exactly the span they
+    /// asked for. The others share what's left, as evenly as possible and never
+    /// below one column. Returns nil when the remainder can't cover the others —
+    /// the caller should leave them alone and let the rows wrap instead.
+    static func rebalance(spans: [Int], fixed: Int, to newSpan: Int, columns: Int) -> [Int]? {
+        let columns = max(1, columns)
+        guard spans.indices.contains(fixed) else { return nil }
+
+        let others = spans.indices.filter { $0 != fixed }
+        let clamped = min(max(1, newSpan), columns)
+        guard !others.isEmpty else { return [columns] }
+
+        let remaining = columns - clamped
+        // Not enough room to give every other panel a column: don't fight the
+        // user's choice, just let the layout wrap onto another row.
+        guard remaining >= others.count else { return nil }
+
+        var result = spans
+        result[fixed] = clamped
+
+        let base = remaining / others.count
+        var extra = remaining % others.count
+        for index in others {
+            result[index] = base + (extra > 0 ? 1 : 0)
+            if extra > 0 { extra -= 1 }
+        }
+        return result
+    }
+
     @MainActor
     static func effectiveSpan(for panel: NotchPanel, in row: [NotchPanel], columns: Int) -> Int {
         let expanded = expandSpans(row.map(\.span), columns: columns)

@@ -163,7 +163,26 @@ struct LayoutSettings: View {
     private func spanBinding(for panel: NotchPanel) -> Binding<Int> {
         Binding(
             get: { panel.span },
-            set: { panel.span = $0 }
+            set: { newSpan in
+                // Setting one panel's width rebalances the others so the row
+                // still fills the grid, rather than silently leaving a gap or
+                // pushing a panel onto a second row.
+                let enabled = enabledPanels
+                guard let index = enabled.firstIndex(of: panel),
+                      let balanced = NotchGrid.rebalance(
+                          spans: enabled.map(\.span),
+                          fixed: index,
+                          to: newSpan,
+                          columns: gridColumns
+                      )
+                else {
+                    panel.span = newSpan
+                    return
+                }
+                for (panel, span) in zip(enabled, balanced) {
+                    panel.span = span
+                }
+            }
         )
     }
 
