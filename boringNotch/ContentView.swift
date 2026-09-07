@@ -59,6 +59,14 @@ struct ContentView: View {
         )
     }
 
+    /// How much the closed notch grows under the pointer. Only while closed —
+    /// once it is open the size is the user's configured size and must not be
+    /// scaled, and the open state has its own shadow to signal focus.
+    private var hoverBloatScale: CGFloat {
+        guard Defaults[.hoverBloat], vm.notchState == .closed, isHovering else { return 1 }
+        return 1 + Defaults[.hoverBloatAmount]
+    }
+
     private var computedChinWidth: CGFloat {
         var chinWidth: CGFloat = vm.closedNotchSize.width
 
@@ -109,8 +117,11 @@ struct ContentView: View {
                             .frame(height: 1)
                             .padding(.horizontal, topCornerRadius)
                     }
+                    // Shadow only while open. On hover the notch grows slightly
+                    // instead — a shadow against the black bezel is nearly
+                    // invisible, whereas a size change reads immediately.
                     .shadow(
-                        color: ((vm.notchState == .open || isHovering) && Defaults[.enableShadow])
+                        color: (vm.notchState == .open && Defaults[.enableShadow])
                             ? .black.opacity(0.7) : .clear, radius: Defaults[.cornerRadiusScaling] ? 6 : 4
                     )
                     .padding(
@@ -125,6 +136,13 @@ struct ContentView: View {
                     .frame(
                         width: vm.notchState == .open ? vm.notchSize.width : nil,
                         height: vm.notchState == .open ? vm.notchSize.height : nil
+                    )
+                    // Anchored to the top so it grows down and outwards from the
+                    // bezel, the way the real notch is attached to the edge.
+                    .scaleEffect(hoverBloatScale, anchor: .top)
+                    .animation(
+                        .spring(response: 0.28, dampingFraction: 0.62, blendDuration: 0),
+                        value: hoverBloatScale
                     )
                     .conditionalModifier(true) { view in
                         let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)

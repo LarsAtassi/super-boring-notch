@@ -1198,6 +1198,8 @@ struct Appearance: View {
     @Default(.sliderColor) var sliderColor
     @Default(.useMusicVisualizer) var useMusicVisualizer
     @Default(.visualizerStyle) var visualizerStyle
+    @Default(.hoverBloat) var hoverBloat
+    @Default(.hoverBloatAmount) var hoverBloatAmount
 
     let icons: [String] = ["logo2"]
     @State private var selectedIcon: String = "logo2"
@@ -1213,9 +1215,31 @@ struct Appearance: View {
                 Defaults.Toggle(key: .settingsIconInNotch) {
                     Text("Show settings icon in notch")
                 }
-
+                Defaults.Toggle(key: .hoverBloat) {
+                    Text("Grow the notch on hover")
+                }
+                if hoverBloat {
+                    LabeledContent("Growth") {
+                        HStack(spacing: 10) {
+                            Slider(value: $hoverBloatAmount, in: 0.02...0.16)
+                                .onChange(of: hoverBloatAmount) { _, value in
+                                    let snapped = (value * 100).rounded() / 100
+                                    if snapped != value { hoverBloatAmount = snapped }
+                                }
+                            Text("\(hoverBloatAmount * 100, specifier: "%.0f")%")
+                                .font(.system(.body, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                                .frame(width: 52, alignment: .trailing)
+                        }
+                    }
+                }
             } header: {
                 Text("General")
+            } footer: {
+                Text("On hover the notch grows slightly instead of casting a shadow, which is hard to see against the black bezel.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section {

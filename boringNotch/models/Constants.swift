@@ -126,6 +126,10 @@ extension Defaults.Keys {
     static let settingsIconInNotch = Key<Bool>("settingsIconInNotch", default: true)
     static let lightingEffect = Key<Bool>("lightingEffect", default: true)
     static let enableShadow = Key<Bool>("enableShadow", default: true)
+    /// Grow the closed notch slightly under the pointer. Replaces the hover
+    /// shadow, which is close to invisible against the black bezel.
+    static let hoverBloat = Key<Bool>("hoverBloat", default: true)
+    static let hoverBloatAmount = Key<CGFloat>("hoverBloatAmount", default: 0.06)
     static let cornerRadiusScaling = Key<Bool>("cornerRadiusScaling", default: true)
 
     static let showNotHumanFace = Key<Bool>("showNotHumanFace", default: false)
