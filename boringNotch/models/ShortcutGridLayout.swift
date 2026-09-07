@@ -61,9 +61,12 @@ enum ShortcutGridLayout {
             let height = (size.height - spacing * CGFloat(rows - 1)) / CGFloat(rows)
             guard width >= minTileWidth, height >= minTileHeight else { continue }
 
-            // Don't let tiles balloon when there are only a few of them.
+            // Cap height so a couple of tiles in a tall panel don't become
+            // slabs. Width is deliberately NOT capped: the column width is
+            // already divided from the available space, so clamping it just
+            // leaves a dead strip down the right-hand edge.
             let cappedHeight = min(height, preferredTile * maxGrowthFactor)
-            let cappedWidth = min(width, preferredTile * maxGrowthFactor * targetAspect)
+            let cappedWidth = width
 
             // Prefer arrangements whose tiles land near the requested size and
             // near the target proportions, and that waste little of the area.

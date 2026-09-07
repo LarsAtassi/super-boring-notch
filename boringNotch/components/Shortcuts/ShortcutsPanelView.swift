@@ -170,12 +170,16 @@ struct ShortcutTile: View {
 
         switch item.style {
         case .gradient:
+            // Shade by mixing toward black rather than by lowering opacity.
+            // Opacity over the notch's black face desaturates as it darkens,
+            // which is what made these read as muddy next to Shortcuts.app's
+            // vivid cards.
             shape
                 .fill(
                     LinearGradient(
                         colors: [
-                            base.opacity(0.92 + 0.08 * lift),
-                            base.opacity(0.66 + 0.12 * lift)
+                            base.lightened(by: 0.06 + 0.06 * lift),
+                            base.darkened(by: 0.20 - 0.06 * lift)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -186,7 +190,7 @@ struct ShortcutTile: View {
 
         case .filled:
             shape
-                .fill(base.opacity(0.88 + 0.12 * lift))
+                .fill(base.lightened(by: 0.06 * lift))
                 .overlay { topEdgeHighlight(shape) }
                 .shadow(color: base.opacity(0.35 * lift), radius: 6, y: 2)
 

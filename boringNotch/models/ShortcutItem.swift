@@ -157,6 +157,31 @@ extension Color {
         )
     }
 
+    /// Mixes toward black. Preserves hue and saturation, unlike lowering
+    /// opacity over a dark background.
+    func darkened(by amount: Double) -> Color {
+        blended(with: .black, amount: amount)
+    }
+
+    /// Mixes toward white.
+    func lightened(by amount: Double) -> Color {
+        blended(with: .white, amount: amount)
+    }
+
+    private func blended(with other: Color, amount: Double) -> Color {
+        let t = min(max(amount, 0), 1)
+        guard t > 0,
+              let a = NSColor(self).usingColorSpace(.sRGB),
+              let b = NSColor(other).usingColorSpace(.sRGB) else { return self }
+        return Color(
+            .sRGB,
+            red: Double(a.redComponent) * (1 - t) + Double(b.redComponent) * t,
+            green: Double(a.greenComponent) * (1 - t) + Double(b.greenComponent) * t,
+            blue: Double(a.blueComponent) * (1 - t) + Double(b.blueComponent) * t,
+            opacity: Double(a.alphaComponent)
+        )
+    }
+
     /// "RRGGBB", or nil if the colour has no sRGB representation.
     var hexString: String? {
         guard let components = NSColor(self).usingColorSpace(.sRGB) else { return nil }
