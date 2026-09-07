@@ -28,8 +28,12 @@ struct LayoutSettings: View {
             Section {
                 LabeledContent("Width") {
                     HStack(spacing: 10) {
-                        Slider(value: $openWidth, in: OpenNotchSizeLimits.widthRange, step: 10)
-                            .onChange(of: openWidth) { postSizeChange() }
+                        Slider(value: $openWidth, in: OpenNotchSizeLimits.widthRange)
+                            .onChange(of: openWidth) { _, value in
+                                let snapped = (value / 10).rounded() * 10
+                                if snapped != value { openWidth = snapped }
+                                postSizeChange()
+                            }
                         Text("\(openWidth, specifier: "%.0f") pt")
                             .font(.system(.body, design: .rounded))
                             .foregroundStyle(.secondary)
@@ -40,8 +44,12 @@ struct LayoutSettings: View {
 
                 LabeledContent("Height") {
                     HStack(spacing: 10) {
-                        Slider(value: $openHeight, in: OpenNotchSizeLimits.heightRange, step: 5)
-                            .onChange(of: openHeight) { postSizeChange() }
+                        Slider(value: $openHeight, in: OpenNotchSizeLimits.heightRange)
+                            .onChange(of: openHeight) { _, value in
+                                let snapped = (value / 5).rounded() * 5
+                                if snapped != value { openHeight = snapped }
+                                postSizeChange()
+                            }
                         Text("\(openHeight, specifier: "%.0f") pt")
                             .font(.system(.body, design: .rounded))
                             .foregroundStyle(.secondary)

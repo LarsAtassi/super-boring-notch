@@ -48,7 +48,11 @@ struct AppleShortcutsSettings: View {
                 }
                 LabeledContent("Tile size") {
                     HStack(spacing: 10) {
-                        Slider(value: $tileHeight, in: 40...96, step: 2)
+                        Slider(value: $tileHeight, in: 40...96)
+                            .onChange(of: tileHeight) { _, value in
+                                let snapped = (value / 2).rounded() * 2
+                                if snapped != value { tileHeight = snapped }
+                            }
                         Text("\(tileHeight, specifier: "%.0f") pt")
                             .font(.system(.body, design: .rounded))
                             .foregroundStyle(.secondary)

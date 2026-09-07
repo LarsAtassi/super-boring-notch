@@ -227,10 +227,12 @@ struct GeneralSettings: View {
                         name: Notification.Name.notchHeightChanged, object: nil)
                 }
                 if notchHeightMode == .custom {
-                    Slider(value: $notchHeight, in: 15...45, step: 1) {
+                    Slider(value: $notchHeight, in: 15...45) {
                         Text("Custom notch size - \(notchHeight, specifier: "%.0f")")
                     }
-                    .onChange(of: notchHeight) {
+                    .onChange(of: notchHeight) { _, value in
+                        let snapped = value.rounded()
+                        if snapped != value { notchHeight = snapped }
                         NotificationCenter.default.post(
                             name: Notification.Name.notchHeightChanged, object: nil)
                     }
@@ -256,10 +258,12 @@ struct GeneralSettings: View {
                         name: Notification.Name.notchHeightChanged, object: nil)
                 }
                 if nonNotchHeightMode == .custom {
-                    Slider(value: $nonNotchHeight, in: 0...40, step: 1) {
+                    Slider(value: $nonNotchHeight, in: 0...40) {
                         Text("Custom notch size - \(nonNotchHeight, specifier: "%.0f")")
                     }
-                    .onChange(of: nonNotchHeight) {
+                    .onChange(of: nonNotchHeight) { _, value in
+                        let snapped = value.rounded()
+                        if snapped != value { nonNotchHeight = snapped }
                         NotificationCenter.default.post(
                             name: Notification.Name.notchHeightChanged, object: nil)
                     }
@@ -300,7 +304,7 @@ struct GeneralSettings: View {
                 Defaults.Toggle(key: .closeGestureEnabled) {
                     Text("Close gesture")
                 }
-                Slider(value: $gestureSensitivity, in: 100...300, step: 100) {
+                Slider(value: $gestureSensitivity, in: 100...300, step: 100) {  // 3 discrete stops: ticks are meaningful here
                     HStack {
                         Text("Gesture sensitivity")
                         Spacer()
@@ -338,7 +342,7 @@ struct GeneralSettings: View {
             }
             Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
             if openNotchOnHover {
-                Slider(value: $minimumHoverDuration, in: 0...1, step: 0.1) {
+                Slider(value: $minimumHoverDuration, in: 0...1) {
                     HStack {
                         Text("Hover delay")
                         Spacer()
@@ -346,7 +350,9 @@ struct GeneralSettings: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .onChange(of: minimumHoverDuration) {
+                .onChange(of: minimumHoverDuration) { _, value in
+                    let snapped = (value * 10).rounded() / 10
+                    if snapped != value { minimumHoverDuration = snapped }
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil)
                 }

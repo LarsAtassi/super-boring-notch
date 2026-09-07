@@ -16,11 +16,17 @@ struct MusicPlayerView: View {
     @EnvironmentObject var vm: BoringViewModel
     let albumArtNamespace: Namespace.ID
 
+    private static let artSpacing: CGFloat = 8
+    /// Below this the album art crowds out the controls entirely, so it is
+    /// dropped and the text gets the whole cell instead.
+    private static let minWidthForArt: CGFloat = 130
+
     /// Art is square and sized from whatever the grid cell gives us, so it grows
     /// with the notch height instead of being pinned to a constant. Capped as a
     /// fraction of the width so a short, wide cell doesn't leave the controls
     /// with no room.
     private func artSize(for size: CGSize) -> CGFloat {
+        guard size.width >= Self.minWidthForArt else { return 0 }
         let fromHeight = size.height - 10
         let fromWidth = size.width * 0.42
         return max(28, min(fromHeight, fromWidth))
@@ -29,17 +35,22 @@ struct MusicPlayerView: View {
     var body: some View {
         GeometryReader { geo in
             let art = artSize(for: geo.size)
-            HStack(spacing: 8) {
-                AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace)
-                    .frame(width: art, height: art)
-                    .padding(.vertical, 5)
+            // Width is computed, not left to the HStack. `maxWidth: .infinity`
+            // let the stack hand the controls more room than the cell has —
+            // MarqueeText's ideal width is the full title — and a `.clipped()`
+            // on the child then clips to that oversized frame, which does
+            // nothing. The title ran on under the neighbouring panel.
+            let controlsWidth = max(0, geo.size.width - art - (art > 0 ? Self.artSpacing : 0))
+
+            HStack(spacing: art > 0 ? Self.artSpacing : 0) {
+                if art > 0 {
+                    AlbumArtView(vm: vm, albumArtNamespace: albumArtNamespace)
+                        .frame(width: art, height: art)
+                        .padding(.vertical, 5)
+                }
 
                 MusicControlsView()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    // Clipped here rather than on the HStack: the track title is
-                    // what used to spill under the neighbouring panel, and
-                    // clipping the whole stack would cut off the album art glow,
-                    // which is meant to bleed past its frame.
+                    .frame(width: controlsWidth, alignment: .leading)
                     .clipped()
                     .compositingGroup()
             }
@@ -506,6 +517,10 @@ struct NotchHomeView: View {
                                     width: columnWidth * CGFloat(span) + spacing * CGFloat(span - 1),
                                     height: rowHeight
                                 )
+                                // Belt and braces: whatever a panel does
+                                // internally, it cannot paint over its
+                                // neighbours' cells.
+                                .clipped()
                         }
                     }
                 }
