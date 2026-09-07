@@ -21,6 +21,15 @@ struct AppleShortcutsSettings: View {
     @State private var discovered: [String] = []
     @State private var didAttemptDiscovery = false
 
+    private func rowButton(
+        _ symbol: String,
+        help: String,
+        isDestructive: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        RowIconButton(symbol: symbol, help: help, isDestructive: isDestructive, action: action)
+    }
+
     /// A copy of the item rendered without its label, for the small row preview.
     private func swatch(_ item: ShortcutItem) -> ShortcutItem {
         var copy = item
@@ -37,8 +46,15 @@ struct AppleShortcutsSettings: View {
                 Defaults.Toggle(key: .closeNotchAfterShortcut) {
                     Text("Close the notch after running a shortcut")
                 }
-                Slider(value: $tileHeight, in: 40...96, step: 2) {
-                    Text("Tile size — \(tileHeight, specifier: "%.0f") pt")
+                LabeledContent("Tile size") {
+                    HStack(spacing: 10) {
+                        Slider(value: $tileHeight, in: 40...96, step: 2)
+                        Text("\(tileHeight, specifier: "%.0f") pt")
+                            .font(.system(.body, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .frame(width: 52, alignment: .trailing)
+                    }
                 }
             } header: {
                 Text("Behaviour")
@@ -78,27 +94,28 @@ struct AppleShortcutsSettings: View {
 
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(item.displayLabel)
-                                Text(item.name)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                // Only worth a second line when the label and the
+                                // shortcut's real name actually differ.
+                                if item.displayLabel != item.name {
+                                    Text(item.name)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
 
                             Spacer()
 
-                            Button("Test") { ShortcutsRunner.run(item) }
-                                .buttonStyle(.bordered)
-                            Button {
-                                editing = item
-                            } label: {
-                                Image(systemName: "pencil")
+                            HStack(spacing: 2) {
+                                rowButton("play.fill", help: "Run now") {
+                                    ShortcutsRunner.run(item)
+                                }
+                                rowButton("pencil", help: "Edit") {
+                                    editing = item
+                                }
+                                rowButton("trash", help: "Remove", isDestructive: true) {
+                                    items.removeAll { $0.id == item.id }
+                                }
                             }
-                            .buttonStyle(.borderless)
-                            Button(role: .destructive) {
-                                items.removeAll { $0.id == item.id }
-                            } label: {
-                                Image(systemName: "trash")
-                            }
-                            .buttonStyle(.borderless)
                         }
                         .padding(.vertical, 2)
                     }
@@ -118,7 +135,7 @@ struct AppleShortcutsSettings: View {
             } header: {
                 Text("Shortcuts")
             } footer: {
-                Text("The name must match the shortcut exactly as it appears in Shortcuts.app. Use Test to check it before relying on it.")
+                Text("The name must match the shortcut exactly as it appears in Shortcuts.app. Use ▶︎ to run one and check it works.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -458,5 +475,39 @@ struct ReorderButtons: View {
         }
         .foregroundStyle(.secondary)
         .frame(width: 14)
+    }
+}
+
+/// A trailing icon button for a settings list row. Stays quiet until hovered —
+/// a permanently red trash is louder than the action warrants.
+struct RowIconButton: View {
+    let symbol: String
+    let help: String
+    var isDestructive: Bool = false
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 11, weight: .semibold))
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(
+            isHovering
+                ? (isDestructive ? Color.red : Color.primary)
+                : Color.secondary
+        )
+        .background {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(isHovering ? Color.primary.opacity(0.08) : .clear)
+        }
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.12)) { isHovering = hovering }
+        }
+        .help(help)
     }
 }

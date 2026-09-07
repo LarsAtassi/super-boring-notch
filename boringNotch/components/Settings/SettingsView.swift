@@ -27,47 +27,54 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $selectedTab) {
-                NavigationLink(value: "General") {
-                    Label("General", systemImage: "gear")
+                // Grouped the way System Settings groups: what the app is, then
+                // what it shows, then what it reacts to, then the rest.
+                Section {
+                    NavigationLink(value: "General") {
+                        Label("General", systemImage: "gearshape")
+                    }
+                    NavigationLink(value: "Appearance") {
+                        Label("Appearance", systemImage: "paintbrush")
+                    }
+                    NavigationLink(value: "Layout") {
+                        Label("Layout", systemImage: "rectangle.3.group")
+                    }
                 }
-                NavigationLink(value: "Appearance") {
-                    Label("Appearance", systemImage: "eye")
+
+                Section("Panels") {
+                    NavigationLink(value: "Media") {
+                        Label("Media", systemImage: "play.circle")
+                    }
+                    NavigationLink(value: "Calendar") {
+                        Label("Calendar", systemImage: "calendar")
+                    }
+                    NavigationLink(value: "AppleShortcuts") {
+                        Label("Shortcuts", systemImage: "square.stack.3d.up")
+                    }
+                    NavigationLink(value: "Shelf") {
+                        Label("Shelf", systemImage: "tray.full")
+                    }
                 }
-                NavigationLink(value: "Layout") {
-                    Label("Layout", systemImage: "rectangle.3.group")
+
+                Section("System") {
+                    NavigationLink(value: "HUD") {
+                        Label("HUD", systemImage: "dial.medium")
+                    }
+                    NavigationLink(value: "Battery") {
+                        Label("Battery", systemImage: "battery.100")
+                    }
+                    NavigationLink(value: "Shortcuts") {
+                        Label("Keyboard", systemImage: "keyboard")
+                    }
                 }
-                NavigationLink(value: "Media") {
-                    Label("Media", systemImage: "play.laptopcomputer")
-                }
-                NavigationLink(value: "Calendar") {
-                    Label("Calendar", systemImage: "calendar")
-                }
-                NavigationLink(value: "HUD") {
-                    Label("HUDs", systemImage: "dial.medium.fill")
-                }
-                NavigationLink(value: "Battery") {
-                    Label("Battery", systemImage: "battery.100.bolt")
-                }
-//                NavigationLink(value: "Downloads") {
-//                    Label("Downloads", systemImage: "square.and.arrow.down")
-//                }
-                NavigationLink(value: "Shelf") {
-                    Label("Shelf", systemImage: "books.vertical")
-                }
-                NavigationLink(value: "Shortcuts") {
-                    Label("Keyboard", systemImage: "keyboard")
-                }
-                NavigationLink(value: "AppleShortcuts") {
-                    Label("Shortcuts", systemImage: "square.stack.3d.up.fill")
-                }
-                // NavigationLink(value: "Extensions") {
-                //     Label("Extensions", systemImage: "puzzlepiece.extension")
-                // }
-                NavigationLink(value: "Advanced") {
-                    Label("Advanced", systemImage: "gearshape.2")
-                }
-                NavigationLink(value: "About") {
-                    Label("About", systemImage: "info.circle")
+
+                Section {
+                    NavigationLink(value: "Advanced") {
+                        Label("Advanced", systemImage: "gearshape.2")
+                    }
+                    NavigationLink(value: "About") {
+                        Label("About", systemImage: "info.circle")
+                    }
                 }
             }
             .listStyle(SidebarListStyle())
@@ -102,15 +109,7 @@ struct SettingsView: View {
                 case "Advanced":
                     Advanced()
                 case "About":
-                    if let controller = updaterController {
-                        About(updaterController: controller)
-                    } else {
-                        // Fallback with a default controller
-                        About(
-                            updaterController: SPUStandardUpdaterController(
-                                startingUpdater: false, updaterDelegate: nil,
-                                userDriverDelegate: nil))
-                    }
+                    About()
                 default:
                     GeneralSettings()
                 }
@@ -843,79 +842,99 @@ func lighterColor(from nsColor: NSColor, amount: CGFloat = 0.14) -> Color {
 }
 
 struct About: View {
-    @State private var showBuildNumber: Bool = false
-    let updaterController: SPUStandardUpdaterController
-    @Environment(\.openWindow) var openWindow
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
-        VStack {
-            Form {
-                Section {
-                    HStack {
-                        Text("Release name")
-                        Spacer()
-                        Text(Defaults[.releaseName])
-                            .foregroundStyle(.secondary)
-                    }
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        if showBuildNumber {
-                            Text("(\(Bundle.main.buildVersionNumber ?? ""))")
-                                .foregroundStyle(.secondary)
-                        }
-                        Text(Bundle.main.releaseVersionNumber ?? "unkown")
-                            .foregroundStyle(.secondary)
-                    }
-                    .onTapGesture {
-                        withAnimation {
-                            showBuildNumber.toggle()
-                        }
-                    }
-                } header: {
-                    Text("Version info")
-                }
+        Form {
+            Section {
+                HStack(spacing: 16) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 72, height: 72)
 
-                UpdaterSettingsView(updater: updaterController.updater)
-
-                HStack(spacing: 30) {
-                    Spacer(minLength: 0)
-                    Button {
-                        if let url = URL(string: "https://github.com/TheBoredTeam/boring.notch") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    } label: {
-                        VStack(spacing: 5) {
-                            Image("Github")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 18)
-                            Text("GitHub")
-                        }
-                        .contentShape(Rectangle())
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(AppInfo.name)
+                            .font(.system(size: 20, weight: .semibold))
+                        Text("Version \(AppInfo.version) (\(AppInfo.build))")
+                            .foregroundStyle(.secondary)
+                        Text("A personal build — not distributed.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
                     Spacer(minLength: 0)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .padding(.vertical, 6)
             }
-            VStack(spacing: 0) {
-                Divider()
-                Text("Made with 🫶🏻 by not so boring not.people")
+
+            Section {
+                Text("Turns the MacBook notch into a media controller, calendar peek, file shelf, shortcut launcher and HUD replacement.")
                     .foregroundStyle(.secondary)
-                    .padding(.top, 5)
-                    .padding(.bottom, 7)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 10)
+                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                Text("What this is")
             }
-            .frame(maxWidth: .infinity, alignment: .center)
+
+            Section {
+                LabeledContent("Based on") {
+                    Text("\(AppInfo.upstreamName) \(AppInfo.upstreamVersion) (\(AppInfo.upstreamCommit))")
+                        .foregroundStyle(.secondary)
+                }
+                LabeledContent("Licence") {
+                    Text("GPL-3.0")
+                        .foregroundStyle(.secondary)
+                }
+                linkRow(
+                    title: AppInfo.upstreamName,
+                    subtitle: "The upstream project by TheBoredTeam — GPL-3.0",
+                    url: AppInfo.upstreamURL
+                )
+                linkRow(
+                    title: "mediaremote-adapter",
+                    subtitle: "Now Playing bridge by Jonas van den Berg — BSD 3-Clause",
+                    url: AppInfo.adapterURL
+                )
+            } header: {
+                Text("Credits")
+            } footer: {
+                Text("This app is a derivative work of \(AppInfo.upstreamName) and inherits its GPL-3.0 licence. That applies if it is distributed; it does not restrict private use.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                linkRow(
+                    title: "Repository",
+                    subtitle: AppInfo.repositoryURL.replacingOccurrences(of: "https://github.com/", with: ""),
+                    url: AppInfo.repositoryURL
+                )
+            } header: {
+                Text("Source")
+            }
         }
-        .toolbar {
-            //            Button("Welcome window") {
-            //                openWindow(id: "onboarding")
-            //            }
-            //            .controlSize(.extraLarge)
-            CheckForUpdatesView(updater: updaterController.updater)
-        }
+        .formStyle(.grouped)
         .navigationTitle("About")
+    }
+
+    private func linkRow(title: String, subtitle: String, url: String) -> some View {
+        Button {
+            if let link = URL(string: url) { openURL(link) }
+        } label: {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right.square")
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

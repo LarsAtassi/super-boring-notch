@@ -16,6 +16,22 @@ let bundleIdentifier = Bundle.main.bundleIdentifier!
 let appVersion = "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
 
 let temporaryDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+
+/// Identity and provenance, surfaced in About.
+enum AppInfo {
+    static let name = "Super Boring Notch"
+    static var version: String { Bundle.main.releaseVersionNumber ?? "1.0" }
+    static var build: String { Bundle.main.buildVersionNumber ?? "1" }
+
+    /// The upstream release this fork was taken from. Shown in the app so the
+    /// provenance is visible there, not only in the README.
+    static let upstreamName = "boring.notch"
+    static let upstreamVersion = "2.7.3"
+    static let upstreamCommit = "99900bf"
+    static let upstreamURL = "https://github.com/TheBoredTeam/boring.notch"
+    static let repositoryURL = "https://github.com/LarsAtassi/super-boring-notch"
+    static let adapterURL = "https://github.com/ungive/mediaremote-adapter"
+}
 let spacing: CGFloat = 16
 
 struct CustomVisualizer: Codable, Hashable, Equatable, Defaults.Serializable {
@@ -73,7 +89,6 @@ extension Defaults.Keys {
     static let menubarIcon = Key<Bool>("menubarIcon", default: true)
     static let showOnAllDisplays = Key<Bool>("showOnAllDisplays", default: false)
     static let automaticallySwitchDisplay = Key<Bool>("automaticallySwitchDisplay", default: true)
-    static let releaseName = Key<String>("releaseName", default: "Flying Rabbit 🐇🪽")
     
     // MARK: Behavior
     static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.3)

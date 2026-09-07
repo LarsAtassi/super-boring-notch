@@ -26,24 +26,28 @@ struct LayoutSettings: View {
     var body: some View {
         Form {
             Section {
-                VStack(alignment: .leading, spacing: 2) {
-                    Slider(
-                        value: $openWidth,
-                        in: OpenNotchSizeLimits.widthRange,
-                        step: 10
-                    ) {
-                        Text("Width — \(openWidth, specifier: "%.0f") pt")
+                LabeledContent("Width") {
+                    HStack(spacing: 10) {
+                        Slider(value: $openWidth, in: OpenNotchSizeLimits.widthRange, step: 10)
+                            .onChange(of: openWidth) { postSizeChange() }
+                        Text("\(openWidth, specifier: "%.0f") pt")
+                            .font(.system(.body, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .frame(width: 52, alignment: .trailing)
                     }
-                    .onChange(of: openWidth) { postSizeChange() }
+                }
 
-                    Slider(
-                        value: $openHeight,
-                        in: OpenNotchSizeLimits.heightRange,
-                        step: 5
-                    ) {
-                        Text("Height — \(openHeight, specifier: "%.0f") pt")
+                LabeledContent("Height") {
+                    HStack(spacing: 10) {
+                        Slider(value: $openHeight, in: OpenNotchSizeLimits.heightRange, step: 5)
+                            .onChange(of: openHeight) { postSizeChange() }
+                        Text("\(openHeight, specifier: "%.0f") pt")
+                            .font(.system(.body, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .frame(width: 52, alignment: .trailing)
                     }
-                    .onChange(of: openHeight) { postSizeChange() }
                 }
 
                 HStack {
@@ -82,8 +86,8 @@ struct LayoutSettings: View {
                     panels: enabledPanels,
                     spans: enabledPanels.map(\.span)
                 )
-                    .frame(height: 74)
-                    .padding(.vertical, 4)
+                .frame(height: 96)
+                .padding(.vertical, 2)
             } header: {
                 Text("Grid")
             } footer: {
@@ -189,7 +193,7 @@ extension Notification.Name {
 }
 
 /// Miniature of the notch grid, so the effect of columns and spans is visible
-/// without opening the notch.
+/// without opening the notch. Drawn on black, like the real thing.
 private struct GridPreview: View {
     let columns: Int
     let panels: [NotchPanel]
@@ -199,9 +203,29 @@ private struct GridPreview: View {
     let spans: [Int]
 
     var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.black)
+
+            if panels.isEmpty {
+                Text("No panels enabled")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            } else {
+                content
+                    .padding(8)
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(.quaternary, lineWidth: 1)
+        }
+    }
+
+    private var content: some View {
         GeometryReader { geo in
             let rows = NotchGrid.packRows(spans: spans, columns: columns)
-            let spacing: CGFloat = 4
+            let spacing: CGFloat = 5
             let cellWidth = max(1, (geo.size.width - spacing * CGFloat(columns - 1)) / CGFloat(columns))
             let rowHeight = rows.isEmpty
                 ? geo.size.height
@@ -211,36 +235,46 @@ private struct GridPreview: View {
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                     HStack(spacing: spacing) {
                         ForEach(row, id: \.self) { index in
-                            let panel = panels[index]
-                            let span = min(spans[index], columns)
+                            // Spans are expanded the same way the notch expands
+                            // them, so the preview matches what actually renders.
+                            let expanded = NotchGrid.expandSpans(
+                                row.map { spans[$0] },
+                                columns: columns
+                            )
+                            let position = row.firstIndex(of: index) ?? 0
+                            let span = expanded.indices.contains(position)
+                                ? expanded[position]
+                                : min(spans[index], columns)
                             let width = cellWidth * CGFloat(span) + spacing * CGFloat(span - 1)
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(Color.effectiveAccent.opacity(0.22))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                        .strokeBorder(Color.effectiveAccent.opacity(0.45), lineWidth: 0.8)
-                                }
-                                .overlay {
-                                    Image(systemName: panel.systemImage)
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(Color.effectiveAccent)
-                                }
-                                .frame(width: width, height: rowHeight)
+
+                            cell(panels[index], width: width, height: rowHeight)
                         }
-                        Spacer(minLength: 0)
                     }
-                }
-                if rows.isEmpty {
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .strokeBorder(style: StrokeStyle(lineWidth: 0.8, dash: [3, 3]))
-                        .foregroundStyle(.tertiary)
-                        .overlay {
-                            Text("No panels enabled")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
                 }
             }
         }
+    }
+
+    private func cell(_ panel: NotchPanel, width: CGFloat, height: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(Color.effectiveAccent.opacity(0.18))
+            .overlay {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(Color.effectiveAccent.opacity(0.5), lineWidth: 1)
+            }
+            .overlay {
+                VStack(spacing: 3) {
+                    Image(systemName: panel.systemImage)
+                        .font(.system(size: 12, weight: .medium))
+                    if height > 34 && width > 54 {
+                        Text(panel.title)
+                            .font(.system(size: 9, weight: .medium))
+                            .lineLimit(1)
+                    }
+                }
+                .foregroundStyle(Color.effectiveAccent)
+                .padding(2)
+            }
+            .frame(width: width, height: height)
     }
 }
