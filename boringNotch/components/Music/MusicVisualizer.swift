@@ -6,13 +6,71 @@
 //
 import AppKit
 import Cocoa
+import Defaults
 import SwiftUI
+
+/// Shapes the live-activity animation can take.
+enum VisualizerStyle: String, CaseIterable, Identifiable, Defaults.Serializable {
+    /// Four bars at random heights — upstream's original.
+    case bars
+    /// Symmetric bars growing from the centre outwards.
+    case levels
+    /// A sine wave travelling across the bars.
+    case wave
+    /// A single dot breathing in and out.
+    case pulse
+    /// Three dots bouncing in sequence.
+    case bounce
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .bars: return "Bars"
+        case .levels: return "Levels"
+        case .wave: return "Wave"
+        case .pulse: return "Pulse"
+        case .bounce: return "Bounce"
+        }
+    }
+
+    var elementCount: Int {
+        switch self {
+        case .bars: return 4
+        case .levels, .wave: return 5
+        case .pulse: return 1
+        case .bounce: return 3
+        }
+    }
+
+    /// Dots are round and squat; bars are tall and thin.
+    var isDotStyle: Bool {
+        self == .pulse || self == .bounce
+    }
+
+    /// Seconds between animation steps.
+    var tickInterval: TimeInterval {
+        switch self {
+        case .bars: return 0.3
+        case .levels: return 0.28
+        case .wave: return 0.14
+        case .pulse: return 0.5
+        case .bounce: return 0.18
+        }
+    }
+}
+
+extension Defaults.Keys {
+    static let visualizerStyle = Key<VisualizerStyle>("visualizerStyle", default: .bars)
+}
 
 class AudioSpectrum: NSView {
     private var barLayers: [CAShapeLayer] = []
     private var barScales: [CGFloat] = []
     private var isPlaying: Bool = true
     private var animationTimer: Timer?
+    /// Advances every tick; drives the travelling wave and the bounce sequence.
+    private var phase: CGFloat = 0
 
     /// The bars mask a gradient layer rather than being drawn as flat shapes,
     /// and both live in Core Animation. Previously the caller masked a SwiftUI
@@ -21,58 +79,82 @@ class AudioSpectrum: NSView {
     /// played. Keeping the mask inside the layer tree keeps it on the GPU.
     private let gradientLayer = CAGradientLayer()
     private let barsContainer = CALayer()
-    
+
+    private static let designSize = CGSize(width: 16, height: 14)
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        setupBars()
+        rebuild()
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         wantsLayer = true
-        setupBars()
+        rebuild()
     }
 
-    private func setupBars() {
-        let barWidth: CGFloat = 2
-        let barCount = 4
-        let spacing: CGFloat = barWidth
-        let totalWidth = CGFloat(barCount) * (barWidth + spacing)
-        let totalHeight: CGFloat = 14
-        frame.size = CGSize(width: totalWidth, height: totalHeight)
-
-        for i in 0 ..< barCount {
-            let xPosition = CGFloat(i) * (barWidth + spacing)
-            let barLayer = CAShapeLayer()
-            barLayer.frame = CGRect(x: xPosition, y: 0, width: barWidth, height: totalHeight)
-            barLayer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-            barLayer.position = CGPoint(x: xPosition + barWidth / 2, y: totalHeight / 2)
-            barLayer.fillColor = NSColor.white.cgColor
-            barLayer.backgroundColor = NSColor.white.cgColor
-            barLayer.allowsGroupOpacity = false
-            barLayer.masksToBounds = true
-            let path = NSBezierPath(roundedRect: CGRect(x: 0, y: 0, width: barWidth, height: totalHeight),
-                                    xRadius: barWidth / 2,
-                                    yRadius: barWidth / 2)
-            barLayer.path = path.cgPath
-            barLayers.append(barLayer)
-            barScales.append(0.35)
-            barsContainer.addSublayer(barLayer)
+    var style: VisualizerStyle = .bars {
+        didSet {
+            guard style != oldValue else { return }
+            rebuild()
+            if isPlaying { restartAnimating() }
         }
-
-        barsContainer.frame = CGRect(origin: .zero, size: frame.size)
-        gradientLayer.frame = CGRect(origin: .zero, size: frame.size)
-        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
-        gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
-        gradientLayer.mask = barsContainer
-        layer?.addSublayer(gradientLayer)
-        applyTint()
     }
 
     /// Colour the bars take. Set from the album art's average colour.
     var tint: NSColor = .white {
         didSet { applyTint() }
+    }
+
+    private func rebuild() {
+        barLayers.forEach { $0.removeFromSuperlayer() }
+        barLayers.removeAll()
+        barScales.removeAll()
+        phase = 0
+
+        let size = Self.designSize
+        frame.size = size
+
+        let count = style.elementCount
+        let elementWidth: CGFloat = style.isDotStyle ? min(4, size.width / CGFloat(count) - 1) : 2
+        let spacing = count > 1
+            ? (size.width - CGFloat(count) * elementWidth) / CGFloat(count - 1)
+            : 0
+        let elementHeight: CGFloat = style.isDotStyle ? elementWidth : size.height
+        let startX = count > 1 ? 0 : (size.width - elementWidth) / 2
+
+        for index in 0 ..< count {
+            let x = startX + CGFloat(index) * (elementWidth + spacing)
+            let layer = CAShapeLayer()
+            let rect = CGRect(x: 0, y: 0, width: elementWidth, height: elementHeight)
+            layer.frame = CGRect(x: x, y: (size.height - elementHeight) / 2,
+                                 width: elementWidth, height: elementHeight)
+            layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            layer.position = CGPoint(x: x + elementWidth / 2, y: size.height / 2)
+            layer.fillColor = NSColor.white.cgColor
+            layer.masksToBounds = true
+            let path = NSBezierPath(
+                roundedRect: rect,
+                xRadius: elementWidth / 2,
+                yRadius: style.isDotStyle ? elementHeight / 2 : elementWidth / 2
+            )
+            layer.path = path.cgPath
+            barLayers.append(layer)
+            barScales.append(style.isDotStyle ? 1.0 : 0.35)
+            barsContainer.addSublayer(layer)
+        }
+
+        barsContainer.frame = CGRect(origin: .zero, size: size)
+        gradientLayer.frame = CGRect(origin: .zero, size: size)
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
+        gradientLayer.mask = barsContainer
+        if gradientLayer.superlayer == nil {
+            layer?.addSublayer(gradientLayer)
+        }
+        applyTint()
+        resetBars()
     }
 
     private func applyTint() {
@@ -85,48 +167,135 @@ class AudioSpectrum: NSView {
         gradientLayer.colors = [top.cgColor, base.cgColor]
         CATransaction.commit()
     }
-    
+
+    private func restartAnimating() {
+        stopAnimating()
+        startAnimating()
+    }
+
     private func startAnimating() {
         guard animationTimer == nil else { return }
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
-            self?.updateBars()
+        let interval = style.tickInterval
+        animationTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.step()
         }
+        step()
     }
-    
+
     private func stopAnimating() {
         animationTimer?.invalidate()
         animationTimer = nil
         resetBars()
     }
-    
-    private func updateBars() {
-        for (i, barLayer) in barLayers.enumerated() {
-            let currentScale = barScales[i]
-            let targetScale = CGFloat.random(in: 0.35 ... 1.0)
-            barScales[i] = targetScale
-            let animation = CABasicAnimation(keyPath: "transform.scale.y")
-            animation.fromValue = currentScale
-            animation.toValue = targetScale
-            animation.duration = 0.3
-            animation.autoreverses = true
+
+    private func step() {
+        phase += 1
+        let duration = style.tickInterval
+
+        switch style {
+        case .bars:
+            for (index, layer) in barLayers.enumerated() {
+                animateScaleY(layer, from: barScales[index],
+                              to: setScale(index, .random(in: 0.35 ... 1.0)),
+                              duration: duration, autoreverses: true)
+            }
+
+        case .levels:
+            // Symmetric about the centre, so it reads as a level meter.
+            let half = (barLayers.count + 1) / 2
+            var targets = (0 ..< half).map { _ in CGFloat.random(in: 0.35 ... 1.0) }
+            targets += targets.reversed().dropFirst(barLayers.count % 2 == 0 ? 0 : 1)
+            for (index, layer) in barLayers.enumerated() where index < targets.count {
+                animateScaleY(layer, from: barScales[index],
+                              to: setScale(index, targets[index]),
+                              duration: duration, autoreverses: false)
+            }
+
+        case .wave:
+            for (index, layer) in barLayers.enumerated() {
+                let angle = (phase + CGFloat(index)) * 0.9
+                let target = 0.35 + 0.65 * (sin(angle) + 1) / 2
+                animateScaleY(layer, from: barScales[index],
+                              to: setScale(index, target),
+                              duration: duration, autoreverses: false)
+            }
+
+        case .pulse:
+            guard let layer = barLayers.first else { return }
+            let target: CGFloat = barScales[0] > 0.75 ? 0.55 : 1.0
+            let animation = CABasicAnimation(keyPath: "transform.scale")
+            animation.fromValue = barScales[0]
+            animation.toValue = setScale(0, target)
+            animation.duration = duration
+            animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             animation.fillMode = .forwards
             animation.isRemovedOnCompletion = false
-            if #available(macOS 13.0, *) {
-                animation.preferredFrameRateRange = CAFrameRateRange(minimum: 24, maximum: 24, preferred: 24)
+            applyFrameRateCap(animation)
+            layer.add(animation, forKey: "pulse")
+
+        case .bounce:
+            let active = Int(phase) % max(1, barLayers.count)
+            for (index, layer) in barLayers.enumerated() {
+                let lift: CGFloat = index == active ? 3.5 : 0
+                let animation = CABasicAnimation(keyPath: "transform.translation.y")
+                animation.toValue = lift
+                animation.duration = duration
+                animation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                animation.fillMode = .forwards
+                animation.isRemovedOnCompletion = false
+                applyFrameRateCap(animation)
+                layer.add(animation, forKey: "bounce")
             }
-            barLayer.add(animation, forKey: "scaleY")
         }
     }
-    
+
+    private func setScale(_ index: Int, _ value: CGFloat) -> CGFloat {
+        barScales[index] = value
+        return value
+    }
+
+    private func animateScaleY(
+        _ layer: CAShapeLayer,
+        from: CGFloat,
+        to: CGFloat,
+        duration: TimeInterval,
+        autoreverses: Bool
+    ) {
+        let animation = CABasicAnimation(keyPath: "transform.scale.y")
+        animation.fromValue = from
+        animation.toValue = to
+        animation.duration = duration
+        animation.autoreverses = autoreverses
+        animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        animation.fillMode = .forwards
+        animation.isRemovedOnCompletion = false
+        applyFrameRateCap(animation)
+        layer.add(animation, forKey: "scaleY")
+    }
+
+    /// 24fps is plenty for a 16pt-wide ornament and keeps it off the high-power
+    /// display refresh path.
+    private func applyFrameRateCap(_ animation: CAAnimation) {
+        if #available(macOS 13.0, *) {
+            animation.preferredFrameRateRange = CAFrameRateRange(minimum: 24, maximum: 24, preferred: 24)
+        }
+    }
+
     private func resetBars() {
-        for (i, barLayer) in barLayers.enumerated() {
-            barLayer.removeAllAnimations()
-            barLayer.transform = CATransform3DMakeScale(1, 0.35, 1)
-            barScales[i] = 0.35
+        for (index, layer) in barLayers.enumerated() {
+            layer.removeAllAnimations()
+            if style.isDotStyle {
+                layer.transform = CATransform3DIdentity
+                barScales[index] = 1.0
+            } else {
+                layer.transform = CATransform3DMakeScale(1, 0.35, 1)
+                barScales[index] = 0.35
+            }
         }
     }
-    
+
     func setPlaying(_ playing: Bool) {
+        guard playing != isPlaying || (playing && animationTimer == nil) else { return }
         isPlaying = playing
         if isPlaying {
             startAnimating()
@@ -139,15 +308,18 @@ class AudioSpectrum: NSView {
 struct AudioSpectrumView: NSViewRepresentable {
     @Binding var isPlaying: Bool
     var tint: Color = .white
+    var style: VisualizerStyle = .bars
 
     func makeNSView(context: Context) -> AudioSpectrum {
         let spectrum = AudioSpectrum()
+        spectrum.style = style
         spectrum.tint = NSColor(tint)
         spectrum.setPlaying(isPlaying)
         return spectrum
     }
 
     func updateNSView(_ nsView: AudioSpectrum, context: Context) {
+        nsView.style = style
         let newTint = NSColor(tint)
         if nsView.tint != newTint { nsView.tint = newTint }
         nsView.setPlaying(isPlaying)

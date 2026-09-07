@@ -34,6 +34,7 @@ struct ContentView: View {
     @Namespace var albumArtNamespace
 
     @Default(.useMusicVisualizer) var useMusicVisualizer
+    @Default(.visualizerStyle) var visualizerStyle
 
     @Default(.showNotHumanFace) var showNotHumanFace
 
@@ -463,13 +464,11 @@ struct ContentView: View {
                         isPlaying: $musicManager.isPlaying,
                         tint: Defaults[.coloredSpectrogram]
                             ? Color(nsColor: musicManager.avgColor)
-                            : Color.gray
+                            : Color.gray,
+                        style: visualizerStyle
                     )
                     .frame(width: 16, height: 12)
                     .matchedGeometryEffect(id: "spectrum", in: albumArtNamespace)
-                } else {
-                    LottieAnimationContainer()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .frame(
