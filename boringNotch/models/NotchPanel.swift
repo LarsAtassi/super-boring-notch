@@ -149,10 +149,48 @@ enum NotchGrid {
             .map { $0.map { panels[$0] } }
     }
 
-    /// Columns actually consumed by a row, used to pad the last row so its
-    /// cells keep the same width as every other row's.
+    /// Columns actually consumed by a row.
     static func usedColumns(in row: [NotchPanel], columns: Int) -> Int {
         row.reduce(0) { $0 + min($1.span, columns) }
+    }
+
+    /// Grows a row's spans until they fill the grid exactly.
+    ///
+    /// A row that uses 3 of 4 columns would otherwise leave a dead column, which
+    /// is just dead space by another name. Leftover columns go to the widest
+    /// panel first, so the row's proportions stay close to what was configured.
+    /// Pure and index-based so it can be tested without `Defaults`.
+    static func expandSpans(_ spans: [Int], columns: Int) -> [Int] {
+        let columns = max(1, columns)
+        guard !spans.isEmpty else { return [] }
+
+        var result = spans.map { min(max(1, $0), columns) }
+        var used = result.reduce(0, +)
+
+        // Too wide for the row (a single oversized panel): clamp to the grid.
+        if used > columns, result.count == 1 {
+            return [columns]
+        }
+
+        // Spread the leftover columns round-robin rather than piling them onto
+        // one panel: two equal panels in a 4-column grid should end up 2 and 2,
+        // not 3 and 1.
+        var cursor = 0
+        while used < columns {
+            result[cursor % result.count] += 1
+            cursor += 1
+            used += 1
+        }
+        return result
+    }
+
+    @MainActor
+    static func effectiveSpan(for panel: NotchPanel, in row: [NotchPanel], columns: Int) -> Int {
+        let expanded = expandSpans(row.map(\.span), columns: columns)
+        guard let index = row.firstIndex(of: panel), expanded.indices.contains(index) else {
+            return min(panel.span, columns)
+        }
+        return expanded[index]
     }
 }
 

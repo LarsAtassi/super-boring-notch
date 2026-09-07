@@ -466,28 +466,43 @@ struct NotchHomeView: View {
     }
 
     private var mainContent: some View {
-        let rows = NotchGrid.rows(for: visiblePanels, columns: columns)
+        // Columns are measured and assigned explicitly rather than handed to
+        // SwiftUI's `Grid`. `Grid` sizes columns to their content, so a panel
+        // with no intrinsic width — the shortcuts panel is a GeometryReader —
+        // gets starved down to almost nothing while a content-heavy neighbour
+        // takes the rest. A grid whose columns depend on content isn't a grid.
+        GeometryReader { geo in
+            let spacing = NotchMetrics.panelSpacing
+            let rows = NotchGrid.rows(for: visiblePanels, columns: columns)
+            let columnWidth = max(
+                1,
+                (geo.size.width - spacing * CGFloat(columns - 1)) / CGFloat(columns)
+            )
+            let rowHeight = rows.isEmpty
+                ? geo.size.height
+                : max(1, (geo.size.height - spacing * CGFloat(rows.count - 1)) / CGFloat(rows.count))
 
-        return Grid(horizontalSpacing: NotchMetrics.panelSpacing, verticalSpacing: NotchMetrics.panelSpacing) {
-            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                GridRow {
-                    ForEach(row) { panel in
-                        panelView(for: panel)
-                            .notchPanelCard(Defaults[.notchPanelCards] && panel.wantsCard)
-                            .gridCellColumns(min(panel.span, columns))
-                    }
-                    // Pad a short final row so its cells match the other rows'
-                    // widths instead of stretching to fill.
-                    let slack = columns - NotchGrid.usedColumns(in: row, columns: columns)
-                    if slack > 0 {
-                        Color.clear
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .gridCellColumns(slack)
+            VStack(alignment: .leading, spacing: spacing) {
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    HStack(alignment: .top, spacing: spacing) {
+                        ForEach(row) { panel in
+                            let span = NotchGrid.effectiveSpan(
+                                for: panel,
+                                in: row,
+                                columns: columns
+                            )
+                            panelView(for: panel)
+                                .notchPanelCard(Defaults[.notchPanelCards] && panel.wantsCard)
+                                .frame(
+                                    width: columnWidth * CGFloat(span) + spacing * CGFloat(span - 1),
+                                    height: rowHeight
+                                )
+                        }
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(NotchMetrics.layoutAnimation, value: visiblePanels)
         .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
         .blur(radius: vm.notchState == .closed ? 30 : 0)
