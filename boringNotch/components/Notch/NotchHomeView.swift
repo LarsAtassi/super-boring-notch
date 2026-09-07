@@ -60,10 +60,7 @@ struct AlbumArtView: View {
             Button {
                 musicManager.openMusicApp()
             } label: {
-                ZStack(alignment:.bottomTrailing) {
-                    albumArtImage
-                    appIconOverlay
-                }
+                albumArtImage
             }
             .buttonStyle(PlainButtonStyle())
             .scaleEffect(musicManager.isPlaying ? 1 : 0.85)
@@ -95,18 +92,6 @@ struct AlbumArtView: View {
             )
     }
 
-    @ViewBuilder
-    private var appIconOverlay: some View {
-        if vm.notchState == .open && !musicManager.usingAppIconForArtwork {
-            AppIcon(for: musicManager.bundleIdentifier ?? "com.apple.Music")
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 30, height: 30)
-                .offset(x: 10, y: 10)
-                .transition(.scale.combined(with: .opacity))
-                .zIndex(2)
-        }
-    }
 }
 
 struct MusicControlsView: View {
