@@ -82,6 +82,7 @@
 		1443E7F32C609DCE0027C1FC /* matters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1443E7F22C609DCE0027C1FC /* matters.swift */; };
 		147163982C5D35B70068B555 /* MusicVisualizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147163972C5D35B70068B555 /* MusicVisualizer.swift */; };
 		1471639A2C5D35FF0068B555 /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147163992C5D35FF0068B555 /* MusicManager.swift */; };
+		8EADF9D525155316AEFA98E2 /* SystemAudioMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49966678ACA57BFA00161B3 /* SystemAudioMonitor.swift */; };
 		1471A8592C6281BD0058408D /* BoringNotchWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1471A8582C6281BD0058408D /* BoringNotchWindow.swift */; };
 		149E0B972C737D00006418B1 /* WebcamManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 149E0B962C737D00006418B1 /* WebcamManager.swift */; };
 		149E0B9A2C737D40006418B1 /* WebcamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 149E0B992C737D40006418B1 /* WebcamView.swift */; };
@@ -134,7 +135,6 @@
 		3970082C5E1F5DE6AE404712 /* ShortcutsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522258886F765D5B97E88FCF /* ShortcutsPanelView.swift */; };
 		FFDEB88E2C865618B7D889AB /* ShortcutItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1A22DB9B6956809FB19120 /* ShortcutItem.swift */; };
 		CF8D4BABB0015A549C9C2828 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD81FF8DA0F511D99606556 /* NotchPanel.swift */; };
-		B19424092CD0FF01003E5DC2 /* LottieAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B19424082CD0FEFE003E5DC2 /* LottieAnimationView.swift */; };
 		B1A78C822C8BA08100BD51B0 /* FullscreenMediaDetection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A78C812C8BA08100BD51B0 /* FullscreenMediaDetection.swift */; };
 		B1B112912C6A572100093D8F /* EditPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B112902C6A572100093D8F /* EditPanelView.swift */; };
 		B1B112932C6A577E00093D8F /* MouseTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B112922C6A577E00093D8F /* MouseTracker.swift */; };
@@ -147,7 +147,6 @@
 		B1D365D02C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D365CF2C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift */; };
 		B1D6FD432C6603730015F173 /* SoftwareUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */; };
 		B1F0A0022E60000100000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F0A0012E60000100000001 /* BrightnessManager.swift */; };
-		B1F747F92EC7E94000F841DB /* LottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F747F82EC7E94000F841DB /* LottieView.swift */; };
 		B1FEB4992C7686630066EBBC /* PanGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1FEB4982C7686630066EBBC /* PanGesture.swift */; };
 		F38DE6482D8243E7008B5C6D /* BatteryActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */; };
 /* End PBXBuildFile section */
@@ -257,6 +256,7 @@
 		1443E7F42C609E650027C1FC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		147163972C5D35B70068B555 /* MusicVisualizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicVisualizer.swift; sourceTree = "<group>"; };
 		147163992C5D35FF0068B555 /* MusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicManager.swift; sourceTree = "<group>"; };
+		F49966678ACA57BFA00161B3 /* SystemAudioMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioMonitor.swift; sourceTree = "<group>"; };
 		1471A8582C6281BD0058408D /* BoringNotchWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoringNotchWindow.swift; sourceTree = "<group>"; };
 		149E0B962C737D00006418B1 /* WebcamManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamManager.swift; sourceTree = "<group>"; };
 		149E0B992C737D40006418B1 /* WebcamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamView.swift; sourceTree = "<group>"; };
@@ -307,7 +307,6 @@
 		522258886F765D5B97E88FCF /* ShortcutsPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsPanelView.swift; sourceTree = "<group>"; };
 		8E1A22DB9B6956809FB19120 /* ShortcutItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutItem.swift; sourceTree = "<group>"; };
 		BAD81FF8DA0F511D99606556 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
-		B19424082CD0FEFE003E5DC2 /* LottieAnimationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieAnimationView.swift; sourceTree = "<group>"; };
 		B1A78C812C8BA08100BD51B0 /* FullscreenMediaDetection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenMediaDetection.swift; sourceTree = "<group>"; };
 		B1B112902C6A572100093D8F /* EditPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPanelView.swift; sourceTree = "<group>"; };
 		B1B112922C6A577E00093D8F /* MouseTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseTracker.swift; sourceTree = "<group>"; };
@@ -320,7 +319,6 @@
 		B1D365CF2C6A9A6C0047BDBC /* SystemEventIndicatorModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventIndicatorModifier.swift; sourceTree = "<group>"; };
 		B1D6FD422C6603730015F173 /* SoftwareUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareUpdater.swift; sourceTree = "<group>"; };
 		B1F0A0012E60000100000001 /* BrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManager.swift; sourceTree = "<group>"; };
-		B1F747F82EC7E94000F841DB /* LottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieView.swift; sourceTree = "<group>"; };
 		B1FEB4982C7686630066EBBC /* PanGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanGesture.swift; sourceTree = "<group>"; };
 		F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryActivityManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -517,7 +515,6 @@
 				B17266E22C65F7FB0031BA0D /* WhatsNewView.swift */,
 				B10F84A22C6C9596009F3026 /* TestView.swift */,
 				507266DA2C908E2E00A2D00D /* HoverButton.swift */,
-				B1F747F82EC7E94000F841DB /* LottieView.swift */,
 			);
 			path = components;
 			sourceTree = "<group>";
@@ -529,6 +526,7 @@
 				F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */,
 				112FB7342CCF16F70015238C /* NotchSpaceManager.swift */,
 				147163992C5D35FF0068B555 /* MusicManager.swift */,
+				F49966678ACA57BFA00161B3 /* SystemAudioMonitor.swift */,
 				149E0B962C737D00006418B1 /* WebcamManager.swift */,
 				14C08BB52C8DE42D000F8AA0 /* CalendarManager.swift */,
 				B1F0A0012E60000100000001 /* BrightnessManager.swift */,
@@ -722,7 +720,6 @@
 		B186542E2C6F453B000B926A /* Music */ = {
 			isa = PBXGroup;
 			children = (
-				B19424082CD0FEFE003E5DC2 /* LottieAnimationView.swift */,
 				147163972C5D35B70068B555 /* MusicVisualizer.swift */,
 			);
 			path = Music;
@@ -965,8 +962,6 @@
 				1163988F2DF5CC870052E6AF /* CalendarModel.swift in Sources */,
 				1153BD9A2D98824300979FB0 /* SpotifyController.swift in Sources */,
 				118EBE292E946B3F00D54B5A /* ShareServiceFinder.swift in Sources */,
-				B19424092CD0FF01003E5DC2 /* LottieAnimationView.swift in Sources */,
-				B1F747F92EC7E94000F841DB /* LottieView.swift in Sources */,
 				B1C974342C642B6D0000E707 /* MarqueeTextView.swift in Sources */,
 				14288DE82C6E01C800B9F80C /* ProgressIndicator.swift in Sources */,
 				1113ABC52E80E27000EC13B2 /* ShelfItemView.swift in Sources */,
@@ -982,6 +977,7 @@
 				14C08BC12C8E03AD000F8AA0 /* NSImage+Extensions.swift in Sources */,
 				149E0B9A2C737D40006418B1 /* WebcamView.swift in Sources */,
 				1471639A2C5D35FF0068B555 /* MusicManager.swift in Sources */,
+				8EADF9D525155316AEFA98E2 /* SystemAudioMonitor.swift in Sources */,
 				B1B112932C6A577E00093D8F /* MouseTracker.swift in Sources */,
 				B1C448962C9712C4001F0858 /* ActionBar.swift in Sources */,
 				118EBE312E9717DB00D54B5A /* URL+SecurityScoped.swift in Sources */,
@@ -1086,7 +1082,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.larsatassi.superboringnotch.BoringNotchXPCHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.superboringnotch.BoringNotchXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -1111,7 +1107,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.larsatassi.superboringnotch.BoringNotchXPCHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.superboringnotch.BoringNotchXPCHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
@@ -1285,7 +1281,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.larsatassi.superboringnotch;
+				PRODUCT_BUNDLE_IDENTIFIER = com.superboringnotch;
 				PRODUCT_NAME = SuperBoringNotch;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1338,7 +1334,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.larsatassi.superboringnotch;
+				PRODUCT_BUNDLE_IDENTIFIER = com.superboringnotch;
 				PRODUCT_NAME = SuperBoringNotch;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;

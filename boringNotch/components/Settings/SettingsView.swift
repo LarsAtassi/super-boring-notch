@@ -145,7 +145,6 @@ struct GeneralSettings: View {
     @ObservedObject var coordinator = BoringViewCoordinator.shared
 
     @Default(.mirrorShape) var mirrorShape
-    @Default(.showEmojis) var showEmojis
     @Default(.gestureSensitivity) var gestureSensitivity
     @Default(.minimumHoverDuration) var minimumHoverDuration
     @Default(.nonNotchHeight) var nonNotchHeight
@@ -299,8 +298,6 @@ struct GeneralSettings: View {
             }
                 .disabled(!openNotchOnHover)
             if enableGestures {
-                Toggle("Change media with horizontal gestures", isOn: .constant(false))
-                    .disabled(true)
                 Defaults.Toggle(key: .closeGestureEnabled) {
                     Text("Close gesture")
                 }
@@ -1198,12 +1195,11 @@ struct Appearance: View {
     @Default(.sliderColor) var sliderColor
     @Default(.useMusicVisualizer) var useMusicVisualizer
     @Default(.visualizerStyle) var visualizerStyle
+    @Default(.reactiveVisualizer) var reactiveVisualizer
+    @Default(.visualizerSensitivity) var visualizerSensitivity
     @Default(.hoverBloat) var hoverBloat
     @Default(.hoverBloatAmount) var hoverBloatAmount
 
-    let icons: [String] = ["logo2"]
-    @State private var selectedIcon: String = "logo2"
-    @State private var selectedListVisualizer: CustomVisualizer? = nil
     @State private var isPresented: Bool = false
     @State private var name: String = ""
     @State private var url: String = ""
@@ -1270,11 +1266,35 @@ struct Appearance: View {
                     }
                     VisualizerStylePreview(style: visualizerStyle)
                         .padding(.vertical, 2)
+                    Toggle("React to the audio", isOn: $reactiveVisualizer)
+                        .onChange(of: reactiveVisualizer) { _, on in
+                            if on { SystemAudioMonitor.shared.start() }
+                            else { SystemAudioMonitor.shared.stop() }
+                        }
+                    if reactiveVisualizer {
+                        LabeledContent("Sensitivity") {
+                            HStack(spacing: 10) {
+                                Slider(value: $visualizerSensitivity, in: -12...24)
+                                    .onChange(of: visualizerSensitivity) { _, value in
+                                        let snapped = value.rounded()
+                                        if snapped != value { visualizerSensitivity = snapped }
+                                    }
+                                Text("\(visualizerSensitivity, specifier: "%+.0f") dB")
+                                    .font(.system(.body, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                                    .frame(width: 62, alignment: .trailing)
+                            }
+                        }
+                        SystemAudioStatusRow()
+                    }
                 }
             } header: {
                 Text("Live activity animation")
             } footer: {
-                Text("Shown beside the album art in the closed notch while something is playing.")
+                Text(reactiveVisualizer
+                     ? "The bars follow the frequencies of whatever is playing. macOS will ask for permission to read system audio; nothing is recorded or sent anywhere."
+                     : "Shown beside the album art in the closed notch while something is playing. Without \"React to the audio\" the movement is decorative, not derived from the sound.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1321,8 +1341,6 @@ struct Advanced: View {
     
     @State private var customAccentColor: Color = .accentColor
     @State private var selectedPresetColor: PresetAccentColor? = nil
-    let icons: [String] = ["logo2"]
-    @State private var selectedIcon: String = "logo2"
     
     // macOS accent colors
     enum PresetAccentColor: String, CaseIterable, Identifiable {
@@ -1471,49 +1489,6 @@ struct Advanced: View {
                 Text("Window Appearance")
             }
             
-            Section {
-                HStack {
-                    ForEach(icons, id: \.self) { icon in
-                        Spacer()
-                        VStack {
-                            Image(icon)
-                                .resizable()
-                                .frame(width: 80, height: 80)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20, style: .circular)
-                                        .strokeBorder(
-                                            icon == selectedIcon ? Color.effectiveAccent : .clear,
-                                            lineWidth: 2.5
-                                        )
-                                )
-
-                            Text("Default")
-                                .fontWeight(.medium)
-                                .font(.caption)
-                                .foregroundStyle(icon == selectedIcon ? .white : .secondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 3)
-                                .background(
-                                    Capsule()
-                                        .fill(icon == selectedIcon ? Color.effectiveAccent : .clear)
-                                )
-                        }
-                        .onTapGesture {
-                            withAnimation {
-                                selectedIcon = icon
-                            }
-                            NSApp.applicationIconImage = NSImage(named: icon)
-                        }
-                        Spacer()
-                    }
-                }
-                .disabled(true)
-            } header: {
-                HStack {
-                    Text("App icon")
-                    customBadge(text: "Coming soon")
-                }
-            }
             
             Section {
                 Defaults.Toggle(key: .extendHoverArea) {
@@ -1663,15 +1638,6 @@ func proFeatureBadge() -> some View {
                 Color(red: 0.545, green: 0.196, blue: 0.98), lineWidth: 1))
 }
 
-func comingSoonTag() -> some View {
-    Text("Coming soon")
-        .foregroundStyle(.secondary)
-        .font(.footnote.bold())
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
-        .background(Color(nsColor: .secondarySystemFill))
-        .clipShape(.capsule)
-}
 
 func customBadge(text: String) -> some View {
     Text(text)
@@ -1727,6 +1693,59 @@ struct VisualizerStylePreview: View {
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(.quaternary, lineWidth: 1)
+        }
+    }
+}
+
+/// Reports whether the system-audio tap actually came up, since the permission
+/// prompt is easy to dismiss and the failure is otherwise silent.
+struct SystemAudioStatusRow: View {
+    @ObservedObject private var monitor = SystemAudioMonitor.shared
+
+    var body: some View {
+        switch monitor.status {
+        case .running:
+            Label("Reading system audio", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.caption)
+        case .silent:
+            VStack(alignment: .leading, spacing: 4) {
+                Label("No audio received", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text("macOS hands out a silent tap until the app is allowed to record system audio. Enable Super Boring Notch under Screen & System Audio Recording, then quit and reopen the app.")
+                    .foregroundStyle(.secondary)
+                Button("Open Privacy Settings") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.link)
+            }
+            .font(.caption)
+        case .denied:
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Permission denied", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Button("Open Privacy Settings") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.link)
+            }
+            .font(.caption)
+        case .unsupported:
+            Label("Needs macOS 14.2 or later", systemImage: "info.circle")
+                .foregroundStyle(.secondary)
+                .font(.caption)
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
+                .font(.caption)
+        case .idle:
+            Label("Starting…", systemImage: "clock")
+                .foregroundStyle(.secondary)
+                .font(.caption)
         }
     }
 }

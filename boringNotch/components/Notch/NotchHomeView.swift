@@ -261,7 +261,11 @@ struct MusicControlsView: View {
     private func slotView(for slot: MusicControlButton) -> some View {
         switch slot {
         case .shuffle:
-            HoverButton(icon: "shuffle", iconColor: musicManager.isShuffled ? .red : .primary, scale: .medium) {
+            HoverButton(
+                icon: "shuffle",
+                scale: .medium,
+                isActive: musicManager.isShuffled
+            ) {
                 MusicManager.shared.toggleShuffle()
             }
         case .previous:
@@ -277,7 +281,11 @@ struct MusicControlsView: View {
                 MusicManager.shared.nextTrack()
             }
         case .repeatMode:
-            HoverButton(icon: repeatIcon, iconColor: repeatIconColor, scale: .medium) {
+            HoverButton(
+                icon: repeatIcon,
+                scale: .medium,
+                isActive: musicManager.repeatMode != .off
+            ) {
                 MusicManager.shared.toggleRepeat()
             }
         case .volume:
@@ -308,14 +316,6 @@ struct MusicControlsView: View {
         }
     }
 
-    private var repeatIconColor: Color {
-        switch musicManager.repeatMode {
-        case .off:
-            return .primary
-        case .all, .one:
-            return .red
-        }
-    }
 }
 
 struct FavoriteControlButton: View {
@@ -575,6 +575,15 @@ struct MusicSliderView: View {
     let isPlaying: Bool
     var onValueChange: (Double) -> Void
 
+    /// Where the user just seeked to, held until the player confirms it.
+    @State private var seekTarget: Double?
+    @State private var seekedAt: Date = .distantPast
+
+    /// How close the player's reported position must get before we hand control
+    /// back to the running estimate, and how long we wait before giving up on a
+    /// player that never confirms.
+    private static let seekTolerance: Double = 1.5
+    private static let seekTimeout: TimeInterval = 2.0
 
     var body: some View {
         VStack {
@@ -586,7 +595,11 @@ struct MusicSliderView: View {
                     : Defaults[.sliderColor] == SliderColorEnum.accent ? .effectiveAccent : .white,
                 dragging: $dragging,
                 lastDragged: $lastDragged,
-                onValueChange: onValueChange
+                onValueChange: { newValue in
+                    seekTarget = newValue
+                    seekedAt = Date()
+                    onValueChange(newValue)
+                }
             )
             .frame(height: 10, alignment: .center)
 
@@ -603,7 +616,21 @@ struct MusicSliderView: View {
             .font(.caption)
         }
         .onChange(of: currentDate) {
-           guard !dragging, timestampDate.timeIntervalSince(lastDragged) > -1 else { return }
+            guard !dragging else { return }
+
+            // The old guard compared the player's last report against the drag
+            // time with a one-second window. A player that reports often — the
+            // MediaRemote stream does — satisfied it straight away, so the
+            // estimate recomputed from the stale pre-seek position and the
+            // slider visibly jumped backwards. Hold the seeked position until
+            // the player actually confirms it, or until it clearly never will.
+            if let target = seekTarget {
+                let confirmed = abs(elapsedTime - target) <= Self.seekTolerance
+                let timedOut = currentDate.timeIntervalSince(seekedAt) > Self.seekTimeout
+                guard confirmed || timedOut else { return }
+                seekTarget = nil
+            }
+
             sliderValue = MusicManager.shared.estimatedPlaybackPosition(at: currentDate)
         }
     }

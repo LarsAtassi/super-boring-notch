@@ -214,10 +214,18 @@ struct MusicSlotConfigurationView: View {
                 .frame(width: 44, height: 44)
 
             if slot != .none {
+                let active = isSlotActive(slot)
                 Image(systemName: slot.iconName)
-                    .font(.system(size: slot.prefersLargeScale ? 18 : 15, weight: .medium))
+                    .font(.system(size: slot.prefersLargeScale ? 18 : 15,
+                                  weight: active ? .semibold : .medium))
                     .foregroundStyle(previewIconColor(for: slot))
+                    .opacity(active ? 1 : 0.75)
                     .frame(width: 28, height: 28)
+                    .background {
+                        if active {
+                            Circle().fill(Color.primary.opacity(0.18))
+                        }
+                    }
             } else {
                 RoundedRectangle(cornerRadius: 6)
                     .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
@@ -229,19 +237,21 @@ struct MusicSlotConfigurationView: View {
         .contentShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    private func previewIconColor(for slot: MusicControlButton) -> Color {
+    /// Toggles that have an on state, so the preview can show it the same way
+    /// the notch does — a filled backing rather than a red glyph.
+    private func isSlotActive(_ slot: MusicControlButton) -> Bool {
         switch slot {
-        case .shuffle:
-            return musicManager.isShuffled ? .red : .primary
-        case .repeatMode:
-            return musicManager.repeatMode != .off ? .red : .primary
-        case .favorite:
-            return musicManager.isFavoriteTrack ? .red : .primary
-        case .playPause:
-            return .primary
-        default:
-            return .primary
+        case .shuffle: return musicManager.isShuffled
+        case .repeatMode: return musicManager.repeatMode != .off
+        case .favorite: return musicManager.isFavoriteTrack
+        default: return false
         }
+    }
+
+    private func previewIconColor(for slot: MusicControlButton) -> Color {
+        // The heart keeps its colour: a red heart is a convention, not a
+        // state indicator borrowed from an error style.
+        slot == .favorite && musicManager.isFavoriteTrack ? .red : .primary
     }
 
     private func ensureSlotCapacity(_ target: Int) {

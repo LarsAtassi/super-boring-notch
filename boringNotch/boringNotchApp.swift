@@ -82,6 +82,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             screenUnlockedObserver = nil
         }
         MusicManager.shared.destroy()
+        SystemAudioMonitor.shared.stop()
         cleanupDragDetectors()
         cleanupWindows()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
@@ -347,6 +348,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         installMainMenu()
+
+        // Opt-in only: this is what triggers the system-audio permission prompt,
+        // so it must never happen unless the user asked for it.
+        if Defaults[.reactiveVisualizer] {
+            SystemAudioMonitor.shared.start()
+        }
 
 
         NotificationCenter.default.addObserver(

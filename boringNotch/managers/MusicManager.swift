@@ -671,6 +671,14 @@ class MusicManager: ObservableObject {
     }
 
     func seek(to position: TimeInterval) {
+        // Move the local position immediately rather than waiting for the player
+        // to report back. Views estimate the current position from elapsedTime
+        // and timestampDate, so leaving them on the pre-seek values made the
+        // slider snap back to where it was until the next update arrived.
+        Task { @MainActor in
+            self.elapsedTime = min(max(0, position), self.songDuration)
+            self.timestampDate = Date()
+        }
         Task {
             await activeController?.seek(to: position)
         }
