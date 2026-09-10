@@ -347,6 +347,21 @@ final class SystemAudioMonitor: ObservableObject {
             status = .silent
         }
 
+        // An ungranted tap never recovers on its own, so stop publishing
+        // rather than drawing a flat line forever: emptying the levels makes
+        // `isRunning` false, and the visualiser falls back to its canned
+        // animation. If real signal ever arrives the branch above flips the
+        // status back and normal publishing resumes.
+        if status == .silent {
+            if !latestLevels.isEmpty {
+                latestLevels = []
+                latestWaveform = []
+                levels = []
+                smoothed = [Float](repeating: 0, count: Self.bandCount)
+            }
+            return
+        }
+
         // Everything below works in dB. Hearing is logarithmic, and linear
         // magnitudes made anything but the bass invisible.
         let gain = Float(Defaults[.visualizerSensitivity])

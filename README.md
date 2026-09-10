@@ -123,9 +123,11 @@ system output, and macOS files that under the same permission as a microphone.
 The tap is read in memory to compute an FFT and is never written to disk or
 sent anywhere; the code is in
 [`SystemAudioMonitor.swift`](boringNotch/managers/SystemAudioMonitor.swift).
-Decline it and the bars sit flat: macOS still hands the app a tap, it just
-zeroes every sample. Switch off Settings → Appearance → "React to the audio"
-to get the canned animation back.
+Decline it and the visualiser falls back to its canned animation on its own.
+That fallback has to be detected rather than reported: macOS still hands the
+app a working tap when the grant is missing, it just zeroes every sample, so a
+tap that stays silent for four seconds while something is playing is treated
+as ungranted.
 
 ## Privacy
 

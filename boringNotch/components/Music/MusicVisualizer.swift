@@ -110,6 +110,9 @@ class AudioSpectrum: NSView {
     private var animationTimer: Timer?
     /// Advances every tick; drives the travelling wave and the bounce sequence.
     private var phase: CGFloat = 0
+    /// When the canned animation last advanced, so it keeps its own cadence
+    /// even while the faster audio-reactive timer is driving `step()`.
+    private var lastCannedStep: CFTimeInterval = 0
 
     /// The bars mask a gradient layer rather than being drawn as flat shapes,
     /// and both live in Core Animation. Previously the caller masked a SwiftUI
@@ -269,9 +272,17 @@ class AudioSpectrum: NSView {
     }
 
     private func step() {
-        phase += 1
-
         if isReactive, stepFromAudio() { return }
+
+        // Falling back to a canned animation. The reactive timer ticks at
+        // 25Hz, far faster than these animations run, and driving them at
+        // that rate restarts each one before it finishes. Let them keep their
+        // own pace instead.
+        let now = CACurrentMediaTime()
+        guard now - lastCannedStep >= style.tickInterval - 0.005 else { return }
+        lastCannedStep = now
+
+        phase += 1
 
         let duration = style.tickInterval
 
