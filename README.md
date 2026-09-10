@@ -55,38 +55,61 @@ that this fork is based on.
 ## Requirements
 
 - macOS 14 Sonoma or later
-- Xcode 16 or later
+- Designed around the MacBook notch, but it runs on a display without one —
+  Settings → Layout sets the height of the closed bar in that case
 
-Note: if `xcode-select` points at the Command Line Tools rather than Xcode,
-`xcodebuild` will fail. The command below sets `DEVELOPER_DIR` explicitly to
-sidestep that; `sudo xcode-select -s /Applications/Xcode.app` fixes it for good.
+## Getting started
 
-## Build
+Two ways in. Downloading a build needs nothing but the Mac you already have;
+building it yourself needs Xcode.
+
+### Download a build
+
+Take the latest `SuperBoringNotch.zip` from
+[Releases](https://github.com/LarsAtassi/super-boring-notch/releases), unzip it,
+and drag `SuperBoringNotch.app` into `/Applications`.
+
+macOS **will** refuse to open it the first time. That is expected and it is not
+a sign anything is wrong — see [Running a build you didn't compile
+yourself](#running-a-build-you-didnt-compile-yourself) just below for the two
+clicks that get past it.
+
+### Build it yourself
+
+Needs **Xcode 16 or later** — the full app from the App Store, around 10GB, not
+just the Command Line Tools. The first build also downloads eleven Swift
+packages, so it needs a network connection; the versions are pinned in
+`Package.resolved`, so everyone builds the same thing.
 
 ```bash
+git clone https://github.com/LarsAtassi/super-boring-notch.git
+cd super-boring-notch
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   xcodebuild -project boringNotch.xcodeproj -scheme boringNotch \
   -configuration Release -derivedDataPath build build
+cp -R build/Build/Products/Release/SuperBoringNotch.app /Applications/
+open /Applications/SuperBoringNotch.app
 ```
+
+`DEVELOPER_DIR` is set explicitly because `xcodebuild` fails outright if
+`xcode-select` points at the Command Line Tools rather than Xcode;
+`sudo xcode-select -s /Applications/Xcode.app` fixes that permanently.
 
 The app lands at `build/Build/Products/Release/SuperBoringNotch.app`. The Xcode
-scheme and target are still named `boringNotch`; only the product was renamed.
-
-## Install
-
-```bash
-cp -R build/Build/Products/Release/SuperBoringNotch.app /Applications/
-```
-
-The build is ad-hoc signed (no Apple Developer account), so Gatekeeper will
-object the first time. Clear the quarantine flag:
+scheme and target are still named `boringNotch` — only the product was renamed.
+An app you built yourself carries no quarantine flag, so it opens without any
+Gatekeeper prompt. If it somehow does object:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/SuperBoringNotch.app
 ```
 
-Since the app is built locally rather than downloaded, it usually carries no
-quarantine attribute at all and this step is a no-op.
+## Signing
+
+There is no notarisation and no Developer ID. Builds are **ad-hoc signed**,
+because signing properly requires a paid Apple Developer account. That is the
+only reason macOS complains about a downloaded build, and it applies equally to
+a zip from Releases and one sent to you directly.
 
 ### Running a build you didn't compile yourself
 
@@ -97,8 +120,9 @@ right-click the app → **Open** → **Open** in the dialog, which records a
 one-time exception. If macOS shows no Open button at all, use System Settings →
 Privacy & Security, where a recently blocked app gets an **Open Anyway** row.
 
-Compress with `ditto` rather than `zip`, or the signature will not survive the
-round trip:
+If you are the one handing the app to someone else, compress it with `ditto`
+rather than `zip`. The bundle contains symlinks, and `zip` follows them instead
+of preserving them, which breaks the code signature on the way out:
 
 ```bash
 ditto -c -k --keepParent SuperBoringNotch.app SuperBoringNotch.zip
