@@ -6,6 +6,7 @@
 //
 
 import Defaults
+import OSLog
 import SwiftUI
 
 /// Preset tile colours, picked to sit in the same family as the cards in
@@ -203,14 +204,81 @@ extension Defaults.Keys {
 }
 
 enum ShortcutsRunner {
-    /// Runs a shortcut via the `shortcuts://` URL scheme.
+    private static let log = Logger(subsystem: "com.superboringnotch", category: "shortcuts")
+
+    /// The faceless helper Apple ships for running shortcuts. Its own scripting
+    /// dictionary spells out the distinction: "To run a shortcut in the
+    /// background, without opening the Shortcuts app, tell 'Shortcuts Events'
+    /// instead of 'Shortcuts'."
+    private static let eventsBundleID = "com.apple.shortcuts.events"
+
+    /// AppleScript error numbers that mean the shortcut never started. Only
+    /// these are worth retrying through the URL scheme — re-running one that
+    /// failed partway would repeat whatever it had already done.
+    private static let neverRanCodes: Set<Int> = [
+        -600,   // helper not running and could not be launched
+        -609,   // connection invalid
+        -1708,  // event not handled
+        -1712,  // timed out before it was accepted
+        -1728,  // no shortcut by that name
+        -1743,  // the user declined the Automation prompt
+        -10660, // launch services refused
+        -10810
+    ]
+
+    /// Runs a shortcut without bringing Shortcuts.app to the front.
     ///
-    /// This is used in preference to spawning `/usr/bin/shortcuts` because the
-    /// app is sandboxed: a child process inherits the sandbox and cannot read
-    /// the Shortcuts database, whereas opening a URL is always permitted.
+    /// The obvious route, `shortcuts://run-shortcut`, is an *open*, so
+    /// LaunchServices activates the Shortcuts UI every single time and a
+    /// one-tap tile becomes a detour through another app. Shortcuts Events
+    /// executes the same shortcut with no window and no activation.
+    ///
+    /// Spawning `/usr/bin/shortcuts` remains impossible here: a child process
+    /// inherits this app's sandbox and cannot reach the Shortcuts database.
     @MainActor
     static func run(_ item: ShortcutItem) {
-        guard let url = runURL(for: item.name) else { return }
+        let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+
+        // `run shortcut` does not return until the shortcut finishes, which can
+        // be many seconds, so it must not happen on the main thread.
+        Task.detached(priority: .userInitiated) {
+            guard let code = runViaShortcutsEvents(name) else { return }
+            guard neverRanCodes.contains(code) else {
+                // The shortcut ran and failed on its own terms. Running it
+                // again through the URL scheme would just repeat the damage.
+                log.error("shortcut \(name, privacy: .public) failed: \(code)")
+                return
+            }
+            // Either Automation was declined or the name does not resolve. The
+            // URL scheme needs no permission and shows the user an error, so
+            // fall back to the old behaviour rather than failing silently.
+            log.notice("falling back to the URL scheme for \(name, privacy: .public) (\(code))")
+            await MainActor.run { openViaURLScheme(name) }
+        }
+    }
+
+    /// Returns `nil` on success, or the AppleScript error number on failure.
+    private nonisolated static func runViaShortcutsEvents(_ name: String) -> Int? {
+        // The name is interpolated into an AppleScript string literal, so the
+        // two characters that can break out of one have to be escaped.
+        let escaped = name
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let source = "tell application id \"\(eventsBundleID)\" to run shortcut \"\(escaped)\""
+
+        guard let script = NSAppleScript(source: source) else { return -1 }
+        var error: NSDictionary?
+        script.executeAndReturnError(&error)
+        guard let error else { return nil }
+        return (error[NSAppleScript.errorNumber] as? Int) ?? -1
+    }
+
+    /// The original route: works everywhere and needs no permission, but always
+    /// brings Shortcuts.app forward.
+    @MainActor
+    private static func openViaURLScheme(_ name: String) {
+        guard let url = runURL(for: name) else { return }
         NSWorkspace.shared.open(url)
     }
 
