@@ -9,6 +9,7 @@
 
 import Accelerate
 import AudioToolbox
+import Combine
 import CoreAudio
 import Defaults
 import Foundation
@@ -117,8 +118,59 @@ final class SystemAudioMonitor: ObservableObject {
 
     // MARK: - Lifecycle
 
+    /// Whether the user has asked for an audio-reactive visualiser. Capture
+    /// itself follows playback: the tap only exists while something is playing.
+    private(set) var isEnabled = false
+    private var playbackObserver: AnyCancellable?
+    private var idleStop: Task<Void, Never>?
+    /// How long to keep the tap after playback stops. Track skips and quick
+    /// pause/resume would otherwise tear down and rebuild the aggregate device
+    /// every time, flickering the recording indicator in the menu bar.
+    private static let idleGrace: Duration = .seconds(5)
+
+    private var isCapturing: Bool { aggregateID != kAudioObjectUnknown }
+
+    /// Turns the reactive visualiser on. Nothing is captured until playback
+    /// starts, so macOS's recording indicator is only shown while music plays.
+    func enable() {
+        guard !isEnabled else { return }
+        isEnabled = true
+        // `$isPlaying` replays its current value on subscription, so this also
+        // covers enabling while something is already playing.
+        playbackObserver = MusicManager.shared.$isPlaying
+            .removeDuplicates()
+            .sink { [weak self] playing in self?.playbackChanged(playing) }
+    }
+
+    func disable() {
+        isEnabled = false
+        playbackObserver = nil
+        idleStop?.cancel()
+        idleStop = nil
+        stop()
+    }
+
+    private func playbackChanged(_ playing: Bool) {
+        if playing {
+            idleStop?.cancel()
+            idleStop = nil
+            start()
+        } else if isCapturing, idleStop == nil {
+            // Only tear down a tap that actually exists: if starting failed,
+            // the denied/failed status should stay visible in settings.
+            idleStop = Task { [weak self] in
+                try? await Task.sleep(for: Self.idleGrace)
+                guard !Task.isCancelled, let self else { return }
+                self.idleStop = nil
+                self.stop()
+            }
+        }
+    }
+
     func start() {
-        guard status != .running else { return }
+        // Keyed on the device rather than `status`: a silent tap is still a
+        // live tap, and starting a second one would leak the first.
+        guard !isCapturing else { return }
         guard #available(macOS 14.2, *) else {
             status = .unsupported
             return
@@ -132,6 +184,7 @@ final class SystemAudioMonitor: ObservableObject {
             everHadSignal = false
             startedAt = Date()
             status = .running
+            log.notice("system audio tap started")
         } catch {
             teardown()
             let message = (error as NSError).localizedDescription
@@ -145,6 +198,7 @@ final class SystemAudioMonitor: ObservableObject {
     }
 
     func stop() {
+        if isCapturing { log.notice("system audio tap stopped") }
         teardown()
         latestLevels = []
         latestWaveform = []

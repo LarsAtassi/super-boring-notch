@@ -1268,8 +1268,8 @@ struct Appearance: View {
                         .padding(.vertical, 2)
                     Toggle("React to the audio", isOn: $reactiveVisualizer)
                         .onChange(of: reactiveVisualizer) { _, on in
-                            if on { SystemAudioMonitor.shared.start() }
-                            else { SystemAudioMonitor.shared.stop() }
+                            if on { SystemAudioMonitor.shared.enable() }
+                            else { SystemAudioMonitor.shared.disable() }
                         }
                     if reactiveVisualizer {
                         LabeledContent("Sensitivity") {
@@ -1743,7 +1743,7 @@ struct SystemAudioStatusRow: View {
                 .foregroundStyle(.orange)
                 .font(.caption)
         case .idle:
-            Label("Starting…", systemImage: "clock")
+            Label("Idle — listens only while something is playing", systemImage: "pause.circle")
                 .foregroundStyle(.secondary)
                 .font(.caption)
         }

@@ -147,6 +147,9 @@ system output, and macOS files that under the same permission as a microphone.
 The tap is read in memory to compute an FFT and is never written to disk or
 sent anywhere; the code is in
 [`SystemAudioMonitor.swift`](boringNotch/managers/SystemAudioMonitor.swift).
+The tap only exists while something is playing: it is created when playback
+starts and torn down five seconds after it stops, so the menu bar's recording
+indicator is not on the rest of the time.
 Decline it and the visualiser falls back to its canned animation on its own.
 That fallback has to be detected rather than reported: macOS still hands the
 app a working tap when the grant is missing, it just zeroes every sample, so a
